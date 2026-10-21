@@ -13,7 +13,6 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"Ошибка БД: {e}")
     
-    # ВАЖНО: Твой новый домен!
     webhook_url = "https://dcxcvcxv-49y3.vercel.app/api/webhook"
     await bot.set_webhook(webhook_url, drop_pending_updates=True)
     print(f"Вебхук установлен на {webhook_url}")
