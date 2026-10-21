@@ -1,28 +1,21 @@
-import asyncio
-from contextlib import asynccontextmanager
+import os
 from fastapi import FastAPI, Request, Response
 from aiogram import Bot, types
-from bot import dp, BOT_TOKEN, init_db
+from bot import dp, BOT_TOKEN
 
 bot = Bot(token=BOT_TOKEN)
+app = FastAPI()
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    try:
-        await init_db()
-    except Exception as e:
-        print(f"Ошибка БД: {e}")
-    
-    webhook_url = "https://dcxcvcxv-49y3.vercel.app/api/webhook"
-    await bot.set_webhook(webhook_url, drop_pending_updates=True)
-    print(f"Вебхук установлен на {webhook_url}")
-    
-    yield
-    
-    await bot.delete_webhook()
-    await bot.session.close()
+WEBHOOK_URL = "https://dcxcvcxv-49y3.vercel.app/api/webhook"
 
-app = FastAPI(lifespan=lifespan)
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "Bot is running"}
+
+@app.get("/set_webhook")
+async def set_webhook():
+    result = await bot.set_webhook(url=WEBHOOK_URL, drop_pending_updates=True)
+    return {"webhook_set": result, "url": WEBHOOK_URL}
 
 @app.post("/api/webhook")
 async def telegram_webhook(request: Request):
@@ -32,9 +25,5 @@ async def telegram_webhook(request: Request):
         await dp.feed_update(bot, update)
         return Response(status_code=200)
     except Exception as e:
-        print(f"Ошибка при обработке вебхука: {e}")
-        return Response(status_code=200) 
-
-@app.get("/")
-async def root():
-    return {"status": "ok", "message": "Bot is running"}
+        print(f"Error processing update: {e}")
+        return Response(status_code=200)
