@@ -1,0 +1,13 @@
+[project]
+name = "my-bot"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "aiogram",
+    "aiosqlite",
+]
+
+[tool.vercel]
+entrypoint = "index:app"
