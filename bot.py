@@ -15,12 +15,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 
-# Совместимость с параметром style для aiogram
-_orig_btn_init = InlineKeyboardButton.__init__
-def _patched_btn_init(self, *args, style=None, **kwargs):
-    _orig_btn_init(self, *args, **kwargs)
-InlineKeyboardButton.__init__ = _patched_btn_init
-
 BOT_TOKEN = "8789519474:AAGBS8tj4fg7I7x7KwOUhvTztrj2pj9ujdM"
 SUPPORT_USERNAME = "cyyle"
 ADMIN_ID = 6584350034
@@ -57,8 +51,8 @@ async def init_db():
 def main_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="➕ Добавить подписку", callback_data="add_sub", style="success"),
-            InlineKeyboardButton(text="📋 Мои подписки", callback_data="list_subs", style="primary")
+            InlineKeyboardButton(text="➕ Добавить подписку", callback_data="add_sub"),
+            InlineKeyboardButton(text="📋 Мои подписки", callback_data="list_subs")
         ],
         [
             InlineKeyboardButton(text="⭐ Купить Premium", callback_data="buy_premium"),
@@ -192,7 +186,7 @@ async def list_subscriptions(callback: CallbackQuery):
 
     if not rows:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="➕ Добавить подписку", callback_data="add_sub", style="success")],
+            [InlineKeyboardButton(text="➕ Добавить подписку", callback_data="add_sub")],
             [InlineKeyboardButton(text="◀️ Назад", callback_data="to_main")]
         ])
         await callback.message.edit_text("🕸️ У тебя пока нет подписок. Твой кошелек в безопасности (пока что) 🛡️.", reply_markup=keyboard)
@@ -201,13 +195,13 @@ async def list_subscriptions(callback: CallbackQuery):
     total_month = sum(row[2] for row in rows)
     total_year = total_month * 12
 
-    text = f"💸 Твои финансовые черные дыры 🕳️:\n\n"
+    text = "💸 Твои финансовые черные дыры 🕳️:\n\n"
     keyboard_buttons = []
 
     for sub_id, title, price, day in rows:
         text += f"▫️ {title} - {price} ₽ (списание {day}-го числа)\n"
         keyboard_buttons.append([
-            InlineKeyboardButton(text=f"🗑️ Удалить {title}", callback_data=f"del_{sub_id}", style="danger")
+            InlineKeyboardButton(text=f"🗑️ Удалить {title}", callback_data=f"del_{sub_id}")
         ])
 
     text += f"\n💳 В месяц улетает: {total_month:.2f} ₽"
@@ -239,7 +233,7 @@ async def start_add_sub(callback: CallbackQuery, state: FSMContext):
 
     if not is_premium and count >= 3:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⭐ Купить Premium", callback_data="buy_premium", style="primary")],
+            [InlineKeyboardButton(text="⭐ Купить Premium", callback_data="buy_premium")],
             [InlineKeyboardButton(text="◀️ Назад", callback_data="to_main")]
         ])
         await callback.message.edit_text(
@@ -290,7 +284,7 @@ async def process_day(message: Message, state: FSMContext):
 
     await state.clear()
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📋 Мои подписки", callback_data="list_subs", style="primary")],
+        [InlineKeyboardButton(text="📋 Мои подписки", callback_data="list_subs")],
         [InlineKeyboardButton(text="◀️ В главное меню", callback_data="to_main")]
     ])
     await message.answer(f"✅ Готово. Я напомню тебе про <b>'{data['title']}'</b> за день до того, как они украдут твои {data['price']} ₽ 🥷.", parse_mode="HTML", reply_markup=keyboard)
@@ -322,7 +316,6 @@ async def notify_admin_paid(callback: CallbackQuery):
     user = callback.from_user
     username = f"@{user.username}" if user.username else "без юзернейма"
 
-    # Отправляем сообщение тебе (админу) с готовой командой для выдачи
     admin_msg = (
         "🔔 <b>Новая заявка на Premium!</b>\n\n"
         f"👤 Пользователь: {user.full_name} ({username})\n"
@@ -342,7 +335,8 @@ async def notify_admin_paid(callback: CallbackQuery):
 async def back_to_main(callback: CallbackQuery):
     await callback.message.edit_text("👋 Главное меню:", reply_markup=main_keyboard())
 
-async def check_subscriptions():
+async def run_check_once():
+    await init_db()
     phrases = [
         "🚨 Завтра с твоей карты испарятся {price} ₽ на {title} 💸. Ты вообще этим пользуешься, или мы просто так кормим корпорации? 🤡",
         "💀 Внимание! Завтра {title} попытается списать {price} ₽. Если не пользуешься - отменяй прямо сейчас, пока не поздно ✂️.",
