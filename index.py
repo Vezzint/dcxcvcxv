@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request, Response
-from aiogram import Bot, types
-# Импортируйте ваш dispatcher и bot, убедитесь, что они находятся на верхнем уровне модуля для импорта
-# from your_bot_module import dp, bot
+from aiogram import types
+# from your_bot_module import dp, bot  # раскомментируй и импортируй свой dispatcher
 
 app = FastAPI()
 
