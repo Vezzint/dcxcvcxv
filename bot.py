@@ -18,7 +18,6 @@ ADMIN_ID = 6584350034
 DB_NAME = "subscriptions.db" 
 LAVA_PAY_URL = "https://app.lava.top/products/9aad4276-e009-4438-969d-3cf175a430c2"
 
-# Обязательно добавляем DefaultBotProperties для корректной работы
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher(storage=MemoryStorage())
 
@@ -47,10 +46,11 @@ async def init_db():
         await db.commit()
 
 def main_keyboard():
+    # Убраны параметры style="", из-за которых падал код
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="➕ Добавить подписку", callback_data="add_sub", style="success"),
-            InlineKeyboardButton(text="📋 Мои подписки", callback_data="list_subs", style="primary")
+            InlineKeyboardButton(text="➕ Добавить подписку", callback_data="add_sub"),
+            InlineKeyboardButton(text="📋 Мои подписки", callback_data="list_subs")
         ],
         [
             InlineKeyboardButton(text="⭐ Купить Premium", callback_data="buy_premium"),
@@ -133,7 +133,7 @@ async def broadcast_premium(message: Message):
         try:
             await bot.send_message(
                 uid,
-                "💎 Хватит терпеть лимиты!\n\nПереходи на <b>Premium</b> и добавляй бесконечное количество подписок. Один раз взял - пользуешься всегда. Защити все свои деньги от скрытых списаний! 🛡️",
+                "💎 Хватит терпеть лимиты!\n\nПереходи на <b>Premium</b> и добавляй бесконечное количество подписок.",
                 reply_markup=keyboard
             )
             success += 1
@@ -158,7 +158,7 @@ async def list_subscriptions(callback: CallbackQuery):
         rows = await cursor.fetchall()
     if not rows:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="➕ Добавить подписку", callback_data="add_sub", style="success")],
+            [InlineKeyboardButton(text="➕ Добавить подписку", callback_data="add_sub")],
             [InlineKeyboardButton(text="◀️ Назад", callback_data="to_main")]
         ])
         await callback.message.edit_text("🕸️ У тебя пока нет подписок. Твой кошелек в безопасности (пока что) 🛡️.", reply_markup=keyboard)
@@ -169,7 +169,7 @@ async def list_subscriptions(callback: CallbackQuery):
     keyboard_buttons = []
     for sub_id, title, price, day in rows:
         text += f"▫️ {title} - {price} ₽ (списание {day}-го числа)\n"
-        keyboard_buttons.append([InlineKeyboardButton(text=f"🗑️ Удалить {title}", callback_data=f"del_{sub_id}", style="danger")])
+        keyboard_buttons.append([InlineKeyboardButton(text=f"🗑️ Удалить {title}", callback_data=f"del_{sub_id}")])
     text += f"\n💳 В месяц улетает: {total_month:.2f} ₽"
     text += f"\n🔥 За год ты сжигаешь: {total_year:.2f} ₽ 💀"
     keyboard_buttons.append([InlineKeyboardButton(text="◀️ В главное меню", callback_data="to_main")])
@@ -194,7 +194,7 @@ async def start_add_sub(callback: CallbackQuery, state: FSMContext):
         count = (await cursor.fetchone())[0]
     if not is_premium and count >= 3:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⭐ Купить Premium", callback_data="buy_premium", style="primary")],
+            [InlineKeyboardButton(text="⭐ Купить Premium", callback_data="buy_premium")],
             [InlineKeyboardButton(text="◀️ Назад", callback_data="to_main")]
         ])
         await callback.message.edit_text("🛑 Лимит исчерпан! 3 подписки - это потолок для бесплатной версии 🐸.\n\n💎 Хочешь вести больше? Покупай Premium и не жадничай.", reply_markup=keyboard)
@@ -237,7 +237,7 @@ async def process_day(message: Message, state: FSMContext):
         await db.commit()
     await state.clear()
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📋 Мои подписки", callback_data="list_subs", style="primary")],
+        [InlineKeyboardButton(text="📋 Мои подписки", callback_data="list_subs")],
         [InlineKeyboardButton(text="◀️ В главное меню", callback_data="to_main")]
     ])
     await message.answer(f"✅ Готово. Я напомню тебе про <b>'{data['title']}'</b> за день до того, как они украдут твои {data['price']} ₽ 🥷.", reply_markup=keyboard)
@@ -253,11 +253,10 @@ async def buy_premium_info(callback: CallbackQuery):
     text = (
         "💎 <b>Premium доступ навсегда</b>\n\n"
         "• Безлимит на добавление подписок\n"
-        "• Токсичные уведомления без ограничений\n"
-        "• Поддержка проекта\n\n"
+        "• Токсичные уведомления без ограничений\n\n"
         "📌 <b>Инструкция по оплате:</b>\n"
         f"1. Нажми кнопку <b>«Оплатить на Lava.top»</b>\n"
-        f"2. При оплате (или в комментарии) укажи свой ID: <code>{user_id}</code>\n"
+        f"2. При оплате укажи свой ID: <code>{user_id}</code>\n"
         f"3. После перевода нажми кнопку <b>«Я оплатил»</b> ниже 👇"
     )
     await callback.message.edit_text(text, reply_markup=keyboard)
@@ -270,14 +269,13 @@ async def notify_admin_paid(callback: CallbackQuery):
         "🔔 <b>Новая заявка на Premium!</b>\n\n"
         f"👤 Пользователь: {user.full_name} ({username})\n"
         f"🆔 ID: <code>{user.id}</code>\n\n"
-        f"Проверь поступление на Lava.top и выдай доступ командой:\n"
-        f"<code>/give_premium {user.id}</code>"
+        f"Выдай доступ командой:\n<code>/give_premium {user.id}</code>"
     )
     try:
         await bot.send_message(ADMIN_ID, admin_msg)
     except Exception:
         pass
-    await callback.answer("Заявка отправлена создателю! Доступ будет активирован сразу после проверки оплаты 🚀", show_alert=True)
+    await callback.answer("Заявка отправлена создателю! 🚀", show_alert=True)
 
 @dp.callback_query(F.data == "to_main")
 async def back_to_main(callback: CallbackQuery):
